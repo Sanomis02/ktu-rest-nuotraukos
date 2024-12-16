@@ -9,17 +9,28 @@
     <h1>Data Viewer</h1>
     <div id="data-container"></div>
 
-    <script>
-        fetch('/api/data')
-            .then(response => response.json())
-            .then(data => {
-                const container = document.getElementById('data-container');
-                data.forEach(item => {
-                    const div = document.createElement('div');
-                    div.textContent = `${item.id}: ${item.name}`;
-                    container.appendChild(div);
-                });
-            });
-    </script>
+	<script>
+		    fetch('/api/')  // Adjust this endpoint if needed
+        .then(response => {
+		            if (!response.ok) {
+				                    throw new Error(`HTTP error! status: ${response.status}`);
+				                }
+		            return response.json();
+		        })
+        .then(data => {
+		            const container = document.getElementById('data-container');
+		            if (!Array.isArray(data)) {
+				                    throw new Error("API did not return an array");
+				                }
+		            data.forEach(item => {
+				                    const div = document.createElement('div');
+				                    div.textContent = `${item.id}: ${item.name}`;
+				                    container.appendChild(div);
+				                });
+		        })
+        .catch(error => {
+		            console.error("Error fetching API data:", error);
+		        });
+	</script>
 </body>
 </html>
