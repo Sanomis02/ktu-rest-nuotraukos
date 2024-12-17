@@ -43,6 +43,8 @@ services:
       DB_PASSWORD: app_password
     ports:
       - "8000:8000"
+    volumes:
+      - ./uploads:/app/uploads
     depends_on:
       - mysql
     networks:
