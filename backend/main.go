@@ -28,6 +28,8 @@ func main() {
 	defer db.Close()
 
 	uploadDir := "./uploads"
+	baseURL := "http://localhost:8000"
+
 	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
 		log.Fatalf("Failed to create upload directory: %v", err)
 	}
@@ -37,8 +39,10 @@ func main() {
 	http.HandleFunc("/api/login", handlers.LoginHandler)
 	http.HandleFunc("/api/upload", handlers.UploadImageHandler(db, uploadDir))
 
-	// Start the server
+	http.HandleFunc("/api/uploads", handlers.ListImagesHandler(uploadDir, baseURL)) // Returns list of images as JSON
+	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadDir)))) // Serve images statically
+
 	log.Println("Starting server on :8000")
-	log.Fatal(http.ListenAndServe(":8000", nil))
+        log.Fatal(http.ListenAndServe(":8000", nil))
 }
 

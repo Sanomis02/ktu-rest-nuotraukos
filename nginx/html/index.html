@@ -3,34 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Viewer</title>
+    <title>Image Gallery</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+        h1 {
+            margin-top: 20px;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .img-wrapper {
+            margin: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 5px;
+            width: 250px;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        img {
+            width: 100%;
+            border-radius: 8px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Data Viewer</h1>
-    <div id="data-container"></div>
-
+    <h1>Image Gallery</h1>
+    <div class="container" id="image-container"></div>
 	<script>
-		    fetch('/api/')  // Adjust this endpoint if needed
-        .then(response => {
-		            if (!response.ok) {
-				                    throw new Error(`HTTP error! status: ${response.status}`);
-				                }
-		            return response.json();
-		        })
-        .then(data => {
-		            const container = document.getElementById('data-container');
-		            if (!Array.isArray(data)) {
-				                    throw new Error("API did not return an array");
-				                }
-		            data.forEach(item => {
-				                    const div = document.createElement('div');
-				                    div.textContent = `${item.id}: ${item.name}`;
-				                    container.appendChild(div);
-				                });
-		        })
-        .catch(error => {
-		            console.error("Error fetching API data:", error);
-		        });
+	    // Fetch images from the API and display them
+	    async function loadImages() {
+		try {
+		    const response = await fetch('/api/uploads'); // Fetch from the Go backend
+		    if (!response.ok) throw new Error("Failed to fetch images");
+
+		    const images = await response.json();
+		    const container = document.getElementById('image-container');
+
+		    // Clear container
+		    container.innerHTML = '';
+
+		    // Add images dynamically
+		    images.forEach(image => {
+			const wrapper = document.createElement('div');
+			wrapper.className = 'img-wrapper';
+			wrapper.innerHTML = `
+			    <img src="${image.url}" alt="${image.name}">
+			    <p>${image.name}</p>
+			`;
+			container.appendChild(wrapper);
+		    });
+		} catch (error) {
+		    console.error("Error loading images:", error);
+		    document.getElementById('image-container').innerText = "Failed to load images.";
+		}
+	    }
+
+	    // Load images on page load
+	    window.onload = loadImages;
 	</script>
+
 </body>
 </html>
+
