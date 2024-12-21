@@ -26,4 +26,4 @@ stop-services:
 restart-services:
 	@echo "Restarting all containers..."
 	@docker-compose down --remove-orphans
-	@docker-compose up --build -d
+	@docker-compose up --scale backend=3 -d

@@ -34,15 +34,14 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: go_backend
     environment:
       DB_HOST: mysql_server
       DB_PORT: 3306
       DB_NAME: app_db
       DB_USER: app_user
       DB_PASSWORD: app_password
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     volumes:
       - ./uploads:/app/uploads
     depends_on:
