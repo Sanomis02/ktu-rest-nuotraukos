@@ -28,18 +28,16 @@ func main() {
 	defer db.Close()
 
 	uploadDir := "./uploads"
-	baseURL := "http://localhost:8000"
+	baseURL := "http://localhost:8080"
 
 	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
 		log.Fatalf("Failed to create upload directory: %v", err)
 	}
 
-	// Register handlers
-	http.HandleFunc("/api/data", handlers.DataHandler(db))
-	http.HandleFunc("/api/login", handlers.LoginHandler)
-	http.HandleFunc("/api/upload", handlers.UploadImageHandler(db, uploadDir))
-
-	http.HandleFunc("/api/uploads", handlers.ListImagesHandler(uploadDir, baseURL)) // Returns list of images as JSON
+	http.HandleFunc("/api/login", handlers.LoginHandler)                              // Public
+	http.HandleFunc("/api/data", handlers.AuthMiddleware(handlers.DataHandler(db))) // Protected
+	http.HandleFunc("/api/upload", handlers.AuthMiddleware(handlers.UploadImageHandler(db, uploadDir))) // Protected
+	http.HandleFunc("/api/uploads", handlers.ListImagesHandler(uploadDir, baseURL))
 	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadDir)))) // Serve images statically
 
 	log.Println("Starting server on :8000")

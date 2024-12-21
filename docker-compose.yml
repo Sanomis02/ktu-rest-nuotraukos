@@ -9,6 +9,7 @@ services:
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./nginx/html:/usr/share/nginx/html
+      - ./uploads:/uploads
     depends_on:
       - backend
     networks:
