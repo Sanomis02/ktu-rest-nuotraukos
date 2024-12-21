@@ -41,8 +41,8 @@ services:
       DB_NAME: app_db
       DB_USER: app_user
       DB_PASSWORD: app_password
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
     volumes:
       - ./uploads:/app/uploads
     depends_on:

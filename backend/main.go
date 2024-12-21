@@ -34,11 +34,17 @@ func main() {
 		log.Fatalf("Failed to create upload directory: %v", err)
 	}
 
-	http.HandleFunc("/api/login", handlers.LoginHandler)                              // Public
-	http.HandleFunc("/api/data", handlers.AuthMiddleware(handlers.DataHandler(db))) // Protected
-	http.HandleFunc("/api/upload", handlers.AuthMiddleware(handlers.UploadImageHandler(db, uploadDir))) // Protected
-	http.HandleFunc("/api/uploads", handlers.ListImagesHandler(uploadDir, baseURL))
-	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadDir)))) // Serve images statically
+	// Public endpoint: /api/login
+	http.HandleFunc("/api/login", handlers.LoginHandler(db))
+
+	// Protected endpoints:
+	// We wrap them with handlers.AuthenticationMiddleware()
+	http.HandleFunc("/api/data", handlers.AuthenticationMiddleware(handlers.DataHandler(db)),)
+	http.HandleFunc("/api/upload", handlers.AuthenticationMiddleware(handlers.UploadImageHandler(db, uploadDir)),)
+	http.HandleFunc("/api/uploads", handlers.AuthenticationMiddleware(handlers.ListImagesHandler(uploadDir, baseURL)),)
+
+	// Serves the static files in "uploads" directory
+	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadDir))),)
 
 	log.Println("Starting server on :8000")
         log.Fatal(http.ListenAndServe(":8000", nil))

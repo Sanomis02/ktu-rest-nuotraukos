@@ -1,69 +1,52 @@
 package handlers
 
 import (
+    "database/sql"
     "encoding/json"
     "net/http"
-    "time"
-
-    "github.com/golang-jwt/jwt/v5"
 )
 
-// Define the request structure
-type LoginRequest struct {
+// Credentials is a struct to hold JSON username/password in login request.
+type Credentials struct {
     Username string `json:"username"`
     Password string `json:"password"`
 }
 
-// Define the response structure
-type LoginResponse struct {
-    Message string `json:"message"`
-    Token   string `json:"token,omitempty"`
+func LoginHandler(db *sql.DB) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        if r.Method != http.MethodPost {
+            http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+            return
+        }
+
+        var creds Credentials
+        if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+            http.Error(w, "Invalid request payload", http.StatusBadRequest)
+            return
+        }
+
+        // For simplicity, let's assume you have a users table with columns 'username' and 'password'
+        // Adjust the SQL query and table name to your needs, or handle password hashing, etc.
+        // Example only. Definitely secure your logic better in production!
+        row := db.QueryRow("SELECT username FROM users WHERE username = ? AND password = ?", creds.Username, creds.Password)
+        var dbUsername string
+        err := row.Scan(&dbUsername)
+        if err != nil {
+            // If there is no matching row or any other error
+            http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+            return
+        }
+
+        // Generate JWT token
+        token, err := GenerateToken(dbUsername)
+        if err != nil {
+            http.Error(w, "Could not generate token", http.StatusInternalServerError)
+            return
+        }
+
+        // Return the token to client
+        resp := map[string]string{"token": token}
+        w.Header().Set("Content-Type", "application/json")
+        json.NewEncoder(w).Encode(resp)
+    }
 }
-
-var jwtSecret = []byte("your-secure-secret-key")
-
-// GenerateJWT generates a JWT token for the given username
-func GenerateJWT(username string) (string, error) {
-    claims := jwt.MapClaims{
-        "username": username,
-        "exp":      time.Now().Add(time.Hour * 24).Unix(),
-        "iat":      time.Now().Unix(),
-    }
-    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-    return token.SignedString(jwtSecret)
-}
-
-// LoginHandler handles the login requests
-func LoginHandler(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodPost {
-        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-        return
-    }
-
-    var loginReq LoginRequest
-    err := json.NewDecoder(r.Body).Decode(&loginReq)
-    if err != nil {
-        http.Error(w, "Invalid request payload", http.StatusBadRequest)
-        return
-    }
-
-    // Dummy authentication logic (replace with DB lookup)
-    if loginReq.Username != "testuser" || loginReq.Password != "password123" {
-        w.WriteHeader(http.StatusUnauthorized)
-        json.NewEncoder(w).Encode(LoginResponse{Message: "Invalid username or password"})
-        return
-    }
-
-    token, err := GenerateJWT(loginReq.Username)
-    if err != nil {
-        http.Error(w, "Error generating token", http.StatusInternalServerError)
-        return
-    }
-
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(LoginResponse{
-        Message: "Login successful",
-        Token:   token,
-    })
-}
-
