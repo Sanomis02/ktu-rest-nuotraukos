@@ -1,11 +1,13 @@
 # Variables
 GO_VERSION := 1.20
 GO_BIN := $(shell which go)
+JQ_BIN := $(shell which jq)
+HTPASSWD_BIN := $(shell which htpasswd)
 MODULE_PATH := example.com/backend
 
 .PHONY: all check-go
 
-all: check-go
+all: check-go check-jq check-htpasswd
 
 check-go:
 ifeq ($(GO_BIN),)
@@ -19,11 +21,30 @@ else
 	@echo "Go is already installed at $(GO_BIN)."
 endif
 
+check-jq:
+ifeq ($(JQ_BIN),)
+	@echo "JQ is not installed. Installing jq..."
+	@sudo apt install jq
+	@echo "JQ is installed"
+else
+	@echo "JQ was already installed at $(JQ_BIN)."
+endif
+
+check-htpasswd:
+ifeq ($(HTPASSWD_BIN),)
+	@echo "htpasswd is not installed. Installing htpasswd..."
+	@sudo apt-get install -y apache2-utils
+	@echo "htpasswd is installed"
+else
+	@echo "htpasswd was already installed at $(HTPASSWD_BIN)."
+endif
+
 stop-services:
 	@echo "Stopping all containers started by docker-compose..."
 	@docker-compose down --remove-orphans
 
-restart-services:
+build-services:
 	@echo "Restarting all containers..."
 	@docker-compose down --remove-orphans
-	@docker-compose up --build -d
+	@docker-compose build --no-cache
+	@docker-compose up -d

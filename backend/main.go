@@ -2,27 +2,24 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/Sanomis02/ktu-rest-nuotraukos/handlers"
 )
 
-type Data struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-}
-
 func main() {
+	// Database connection details from environment variables
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
 	dbName := os.Getenv("DB_NAME")
 	dbUser := os.Getenv("DB_USER")
 	dbPassword := os.Getenv("DB_PASSWORD")
 
+	// Data Source Name (DSN) for MySQL
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUser, dbPassword, dbHost, dbPort, dbName)
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
@@ -30,28 +27,28 @@ func main() {
 	}
 	defer db.Close()
 
-	http.HandleFunc("/api/data", func(w http.ResponseWriter, r *http.Request) {
-		rows, err := db.Query("SELECT id, name FROM sample_table")
-		if err != nil {
-			http.Error(w, "Database query failed", http.StatusInternalServerError)
-			return
-		}
-		defer rows.Close()
+	uploadDir := "./uploads"
+	baseURL := "https://localhost"
 
-		var data []Data
-		for rows.Next() {
-			var d Data
-			if err := rows.Scan(&d.ID, &d.Name); err != nil {
-				http.Error(w, "Failed to scan row", http.StatusInternalServerError)
-				return
-			}
-			data = append(data, d)
-		}
+	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+		log.Fatalf("Failed to create upload directory: %v", err)
+	}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(data)
-	})
+	// Public endpoint: /api/login
+	http.HandleFunc("/api/login", handlers.LoginHandler(db))
+
+	// Protected endpoints:
+	// We wrap them with handlers.AuthenticationMiddleware()
+	http.HandleFunc("/api/data", handlers.AuthenticationMiddleware(handlers.DataHandler(db)),)
+	http.HandleFunc("/api/upload", handlers.AuthenticationMiddleware(handlers.UploadImageHandler(db, uploadDir)),)
+	http.HandleFunc("/api/uploads", handlers.ListImagesHandler(uploadDir, baseURL))
+	http.HandleFunc("/api/users", handlers.AuthenticationMiddleware(handlers.UsersHandler(db)),)
+	http.HandleFunc("/api/user", handlers.CreateUserHandler(db))
+
+	// Serves the static files in "uploads" directory
+	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadDir))))
 
 	log.Println("Starting server on :8000")
-	log.Fatal(http.ListenAndServe(":8000", nil))
+        log.Fatal(http.ListenAndServe(":8000", nil))
 }
+

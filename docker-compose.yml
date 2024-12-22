@@ -1,14 +1,16 @@
 version: "3.7"
 
 services:
+
   nginx:
-    image: nginx:latest
-    container_name: nginx_server
-    ports:
-      - "8080:80"
+    image: nginx:alpine
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/certs:/etc/nginx/certs
       - ./nginx/html:/usr/share/nginx/html
+    ports:
+      - "443:443"  # SSL port exposed to host
+      - "80:80"    # Optional, but typically for redirect to HTTPS
     depends_on:
       - backend
     networks:
@@ -34,7 +36,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: go_backend
     environment:
       DB_HOST: mysql_server
       DB_PORT: 3306
@@ -43,6 +44,8 @@ services:
       DB_PASSWORD: app_password
     ports:
       - "8000:8000"
+    volumes:
+      - ./uploads:/app/uploads
     depends_on:
       - mysql
     networks:
