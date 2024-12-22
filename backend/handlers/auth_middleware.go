@@ -18,7 +18,7 @@ func GenerateToken(username string) (string, error) {
     // Set token claims
     claims := jwt.MapClaims{
         "username": username,
-        "exp":      time.Now().Add(time.Hour * 1).Unix(), // token expires in 72 hours
+        "exp":      time.Now().Add(time.Minute * 5).Unix(), // token expires in 5 minutes
     }
 
     // Create token
