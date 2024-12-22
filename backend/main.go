@@ -42,7 +42,8 @@ func main() {
 	http.HandleFunc("/api/data", handlers.AuthenticationMiddleware(handlers.DataHandler(db)),)
 	http.HandleFunc("/api/upload", handlers.AuthenticationMiddleware(handlers.UploadImageHandler(db, uploadDir)),)
 	http.HandleFunc("/api/uploads", handlers.ListImagesHandler(uploadDir, baseURL))
-	http.HandleFunc("/api/users", handlers.AuthenticationMiddleware(handlers.UsersHandler(db),)
+	http.HandleFunc("/api/users", handlers.AuthenticationMiddleware(handlers.UsersHandler(db)),)
+	http.HandleFunc("/api/user", handlers.CreateUserHandler(db))
 
 	// Serves the static files in "uploads" directory
 	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadDir))))

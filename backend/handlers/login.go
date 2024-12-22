@@ -4,6 +4,7 @@ import (
     "database/sql"
     "encoding/json"
     "net/http"
+    "golang.org/x/crypto/bcrypt"
 )
 
 // Credentials is a struct to hold JSON username/password in login request.
@@ -25,20 +26,33 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
             return
         }
 
-        // For simplicity, let's assume you have a users table with columns 'username' and 'password'
-        // Adjust the SQL query and table name to your needs, or handle password hashing, etc.
-        // Example only. Definitely secure your logic better in production!
-        row := db.QueryRow("SELECT username FROM users WHERE username = ? AND password = ?", creds.Username, creds.Password)
-        var dbUsername string
-        err := row.Scan(&dbUsername)
-        if err != nil {
-            // If there is no matching row or any other error
-            http.Error(w, "Invalid credentials", http.StatusUnauthorized)
-            return
-        }
+	// Validate input
+	if creds.Username == "" || creds.Password == "" {
+		http.Error(w, "Username and password are required", http.StatusBadRequest)
+		return
+	}
+
+	// Query the database for the user
+	var hashedPassword string
+	query := "SELECT password FROM users WHERE username = ?"
+	err := db.QueryRow(query, creds.Username).Scan(&hashedPassword)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Invalid username or password", http.StatusUnauthorized)
+		} else {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// Compare the hashed password with the provided password
+	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(creds.Password)); err != nil {
+		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
+		return
+	}
 
         // Generate JWT token
-        token, err := GenerateToken(dbUsername)
+        token, err := GenerateToken(creds.Username)
         if err != nil {
             http.Error(w, "Could not generate token", http.StatusInternalServerError)
             return
