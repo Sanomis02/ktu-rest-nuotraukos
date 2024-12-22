@@ -1,15 +1,16 @@
 version: "3.7"
 
 services:
+
   nginx:
-    image: nginx:latest
-    container_name: nginx_server
-    ports:
-      - "8080:80"
+    image: nginx:alpine
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/certs:/etc/nginx/certs
       - ./nginx/html:/usr/share/nginx/html
-      - ./uploads:/uploads
+    ports:
+      - "443:443"  # SSL port exposed to host
+      - "80:80"    # Optional, but typically for redirect to HTTPS
     depends_on:
       - backend
     networks:
