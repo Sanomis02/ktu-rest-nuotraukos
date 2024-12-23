@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"github.com/gorilla/mux"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/Sanomis02/ktu-rest-nuotraukos/handlers"
@@ -34,21 +35,23 @@ func main() {
 		log.Fatalf("Failed to create upload directory: %v", err)
 	}
 
-	// Public endpoint: /api/login
-	http.HandleFunc("/api/login", handlers.LoginHandler(db))
+	r := mux.NewRouter()
 
-	// Protected endpoints:
-	// We wrap them with handlers.AuthenticationMiddleware()
-	http.HandleFunc("/api/data", handlers.AuthenticationMiddleware(handlers.DataHandler(db)),)
-	http.HandleFunc("/api/upload", handlers.AuthenticationMiddleware(handlers.UploadImageHandler(db, uploadDir)),)
-	http.HandleFunc("/api/uploads", handlers.ListImagesHandler(uploadDir, baseURL))
-	http.HandleFunc("/api/users", handlers.AuthenticationMiddleware(handlers.UsersHandler(db)),)
-	http.HandleFunc("/api/user", handlers.CreateUserHandler(db))
+	// Public endpoints
+	r.HandleFunc("/api/login", handlers.LoginHandler(db)).Methods(http.MethodPost)
+	r.HandleFunc("/api/uploads", handlers.ListImagesHandler(uploadDir, baseURL)).Methods(http.MethodGet)
 
-	// Serves the static files in "uploads" directory
-	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadDir))))
+	// Protected endpoints
+	r.Handle("/api/data", handlers.AuthenticationMiddleware(http.HandlerFunc(handlers.DataHandler(db)))).Methods(http.MethodGet)
+	r.Handle("/api/upload", handlers.AuthenticationMiddleware(http.HandlerFunc(handlers.UploadImageHandler(db, uploadDir)))).Methods(http.MethodPost)
+	r.Handle("/api/image/{id}", handlers.AuthenticationMiddleware(http.HandlerFunc(handlers.DeleteImageHandler(db, uploadDir)))).Methods(http.MethodDelete)
+	r.Handle("/api/users", handlers.AuthenticationMiddleware(http.HandlerFunc(handlers.UsersHandler(db)))).Methods(http.MethodGet)
+	r.Handle("/api/user", http.HandlerFunc(handlers.CreateUserHandler(db))).Methods(http.MethodPost)
+
+	// Static file serving for uploaded images
+	r.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadDir)))).Methods(http.MethodGet)
 
 	log.Println("Starting server on :8000")
-        log.Fatal(http.ListenAndServe(":8000", nil))
+        log.Fatal(http.ListenAndServe(":8000", r))
 }
 
