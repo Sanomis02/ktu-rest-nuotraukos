@@ -4,16 +4,18 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"database/sql"
 )
 
 // Image represents an image file with its name and URL
 type Image struct {
 	Name string `json:"name"`
 	URL  string `json:"url"`
+	Comment string `json:"comment"`
 }
 
 // ListImagesHandler returns a list of all images in the uploads directory
-func ListImagesHandler(uploadDir, baseURL string) http.HandlerFunc {
+func ListImagesHandler(db *sql.DB, uploadDir, baseURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -33,8 +35,11 @@ func ListImagesHandler(uploadDir, baseURL string) http.HandlerFunc {
 		for _, file := range files {
 			if !file.IsDir() {
 				fileName := file.Name()
+				query := "SELECT comment FROM images WHERE filename = ?"
 				imageURL := baseURL + "/uploads/" + fileName
-				images = append(images, Image{Name: fileName, URL: imageURL})
+				comment := ""
+				err = db.QueryRow(query, fileName).Scan(&comment)
+				images = append(images, Image{Name: fileName, URL: imageURL, Comment: comment})
 			}
 		}
 

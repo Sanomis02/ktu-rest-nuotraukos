@@ -2,15 +2,16 @@
 
 # Function to display usage
 usage() {
-  echo "Usage: $0 -t <JWT_token> -f <image_path>"
+  echo "Usage: $0 -t <JWT_token> -f <image_path> [-c <comment>]"
   exit 1
 }
 
 # Parse command-line arguments
-while getopts "t:f:" opt; do
+while getopts "t:f:c:" opt; do
   case $opt in
     t) token="$OPTARG" ;;
     f) image_path="$OPTARG" ;;
+    c) comment="$OPTARG" ;;
     *) usage ;;
   esac
 done
@@ -29,14 +30,24 @@ fi
 # API endpoint
 API_URL="https://localhost/api/upload"
 
-# Perform the POST request to upload the image
-response=$(curl -sk -X POST "$API_URL" \
-  -H "Authorization: Bearer $token" \
-  -H "Content-Type: multipart/form-data" \
-  -F "image=@$image_path")
+# Form the POST request
+if [ -n "$comment" ]; then
+  # Include comment in the request if provided
+  response=$(curl -sk -X POST "$API_URL" \
+    -H "Authorization: Bearer $token" \
+    -H "Content-Type: multipart/form-data" \
+    -F "image=@$image_path" \
+    -F "comment=$comment")
+else
+  # Send the request without comment
+  response=$(curl -sk -X POST "$API_URL" \
+    -H "Authorization: Bearer $token" \
+    -H "Content-Type: multipart/form-data" \
+    -F "image=@$image_path")
+fi
 
 # Check the response
-if echo "$response" | jq -e '.success' > /dev/null 2>&1; then
+if echo "$response" | jq -e '.message' > /dev/null 2>&1; then
   echo "Image uploaded successfully: $(echo "$response" | jq -r '.message')"
 else
   echo "Error: Failed to upload image. Response: $response"

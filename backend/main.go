@@ -39,10 +39,9 @@ func main() {
 
 	// Public endpoints
 	r.HandleFunc("/api/login", handlers.LoginHandler(db)).Methods(http.MethodPost)
-	r.HandleFunc("/api/uploads", handlers.ListImagesHandler(uploadDir, baseURL)).Methods(http.MethodGet)
+	r.HandleFunc("/api/uploads", handlers.ListImagesHandler(db, uploadDir, baseURL)).Methods(http.MethodGet)
 
 	// Protected endpoints
-	r.Handle("/api/data", handlers.AuthenticationMiddleware(http.HandlerFunc(handlers.DataHandler(db)))).Methods(http.MethodGet)
 	r.Handle("/api/upload", handlers.AuthenticationMiddleware(http.HandlerFunc(handlers.UploadImageHandler(db, uploadDir)))).Methods(http.MethodPost)
 	r.Handle("/api/image/{id}", handlers.AuthenticationMiddleware(http.HandlerFunc(handlers.DeleteImageHandler(db, uploadDir)))).Methods(http.MethodDelete)
 	r.Handle("/api/users", handlers.AuthenticationMiddleware(http.HandlerFunc(handlers.UsersHandler(db)))).Methods(http.MethodGet)

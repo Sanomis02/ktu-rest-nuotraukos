@@ -36,7 +36,7 @@ func UploadImageHandler(db *sql.DB, uploadDir string) http.HandlerFunc {
 		// Generate a unique filename with a timestamp
 		uniqueFilename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), filepath.Base(header.Filename))
 		filePath := filepath.Join(uploadDir, uniqueFilename)
-
+		comment := r.FormValue("comment") // "comment" is the form field name
 		// Save the file to the file system
 		outFile, err := os.Create(filePath)
 		if err != nil {
@@ -52,8 +52,8 @@ func UploadImageHandler(db *sql.DB, uploadDir string) http.HandlerFunc {
 		}
 
 		// Save metadata to the database
-		query := "INSERT INTO images (filename, filepath) VALUES (?, ?)"
-		_, err = db.Exec(query, uniqueFilename, filePath)
+		query := "INSERT INTO images (filename, filepath, comment) VALUES (?, ?, ?)"
+		_, err = db.Exec(query, uniqueFilename, filePath, comment)
 		if err != nil {
 			http.Error(w, "Failed to save metadata to database", http.StatusInternalServerError)
 			return
