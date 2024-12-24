@@ -3,7 +3,6 @@ GO_VERSION := 1.20
 GO_BIN := $(shell which go)
 JQ_BIN := $(shell which jq)
 HTPASSWD_BIN := $(shell which htpasswd)
-MODULE_PATH := example.com/backend
 
 .PHONY: all check-go
 
